@@ -14,19 +14,19 @@ def create_new_image(size, color):
 	return bytes(color * size[0] * size[1])
 
 ap = argparse.ArgumentParser()
-ap.add_argument("-o", "--output", required = True, \
-		help = "Path to the output image")
-ap.add_argument("-s", "--size", type = int, \
- 		nargs='+', default=[50, 30], \
-		help = "Size of the output image")
-ap.add_argument("-c", "--color", type = int, \
-		nargs='+', default=[255, 255, 255],\
-		help = "Color of each pixel in the output image")
+ap.add_argument("-o", "--output", required = True,
+				help = "Path to the output image")
+ap.add_argument("-s", "--size", type = int,
+ 				nargs='+', default=[50, 30],
+				help = "Size of the output image")
+ap.add_argument("-c", "--color", type = int,
+				nargs='+', default=[255, 255, 255],
+				help = "Color of each pixel in the output image")
 args = vars(ap.parse_args())
 
 outfile = args["output"]
-size = args["size"]
-color = args["color"]
+size    = args["size"]
+color   = args["color"]
 
 # PPM_P6 객체 생성
 ppm_p6 = ppm.PPM_P6()
