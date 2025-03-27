@@ -20,3 +20,8 @@ if __name__ == "__main__":
     pk = cv2.waitKey(0) & 0xFF # in 64bit machine, 하위 바이트 하나의 값만 불러오겠다 (== 아스키 코드 값을 확인하겠다)
     if pk == ord('s'): # chr(99)는 문자 'c' 반환, 입력된 문자가 c면 아래 코드 수행(파일 저장)
         cv2.imwrite('copy.jpg', image)
+
+
+# color quantization (색상 양자화)
+
+# 벡터이미지에서 선 표현: 시작점, 끝점, 선의 두께, 선의 색상 저장. 확대하거나 축소하더라도 왜곡 발생 X.
