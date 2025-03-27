@@ -20,7 +20,6 @@ ppm_p6 = ppm.PPM_P6()
 (width, height, maxval, bitmap) = ppm_p6.read(infile)
 # PPM_P6 객체 정보 출력
 print(ppm_p6)
-print(bitmap)
 
 # PPM_P6 객체를 사용하여 PPM 파일 저장
 ppm_p6.write(width, height, maxval, bitmap, outfile)
