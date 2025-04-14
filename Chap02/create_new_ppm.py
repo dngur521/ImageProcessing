@@ -12,6 +12,7 @@ import PPM.PPM_P6 as ppm
 def create_new_image(size, color):
 	# 개별 작성
 	return bytes(color * size[0] * size[1])
+	# return array.array('B', color * size[0] * size[1]) : 교수님의 정답
 
 ap = argparse.ArgumentParser()
 ap.add_argument("-o", "--output", required = True,
