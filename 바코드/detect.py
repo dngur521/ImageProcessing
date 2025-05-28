@@ -19,6 +19,9 @@ def detectBarcode(img, verbose=False):
 
     # 그레이 스케일 변환
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+    # 정규화
+    gray = cv2.normalize(gray, None, 0, 255, cv2.NORM_MINMAX)
     stages["1. Grayscale"] = gray
 
     # 수평/수직 경계 강도 계산
@@ -53,7 +56,7 @@ def detectBarcode(img, verbose=False):
 
     # 침식 & 팽창 연산
     kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (5, 5))
-    dilate = cv2.dilate(closed, kernel, iterations=7)
+    dilate = cv2.dilate(closed, kernel, iterations=8)
     stages["7. Dilate"] = dilate
     eroded = cv2.erode(dilate, kernel, iterations=16)
     stages["7. Erode"] = eroded
@@ -107,7 +110,7 @@ if __name__ == '__main__':
         os.mkdir(detectset)
 
     # 결과 영상 표시 여부
-    verbose = False
+    verbose = True
 
     # 검출 결과 위치 저장을 위한 파일 생성
     f = open(detectfile, "wt", encoding="UTF-8")  # UT-8로 인코딩
