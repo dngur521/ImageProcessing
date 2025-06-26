@@ -8,20 +8,26 @@ import time
 
 start_time = time.perf_counter()
 
-def process_gradient(grad_sub):
+# 결과 영상 표시 여부
+verbose = False
+
+def process_gradient(grad_sub, ksize=97):
     grad_sub_abs = cv2.convertScaleAbs(grad_sub)
-    blur = cv2.GaussianBlur(grad_sub_abs, (97, 97), 0)
+    blur = cv2.GaussianBlur(grad_sub_abs, (ksize, ksize), 0)
     _, thresh = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
     return grad_sub_abs, blur, thresh
 
-def detectBarcode(img, verbose=False):
+def detectBarcode(img, verbose=False, unique=False, erode=16):
     stages = {}
 
     # 그레이 스케일 변환
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-    # 정규화
-    gray = cv2.normalize(gray, None, 0, 255, cv2.NORM_MINMAX)
+    # 스레숄딩 (일부 이미지에 한해서)
+    if unique:
+        _, gray = cv2.threshold(gray, 50, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    # gray = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 11, 1)
+
     stages["1. Grayscale"] = gray
 
     # 수평/수직 경계 강도 계산
@@ -50,7 +56,7 @@ def detectBarcode(img, verbose=False):
         stages["5. Threshold"] = thresh2
 
     # 모폴로지 변환 (닫힘 연산)
-    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (17, 17))
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (11, 11))
     closed = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
     stages["6. Morphological Close"] = closed
 
@@ -58,7 +64,10 @@ def detectBarcode(img, verbose=False):
     kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (5, 5))
     dilate = cv2.dilate(closed, kernel, iterations=8)
     stages["7. Dilate"] = dilate
-    eroded = cv2.erode(dilate, kernel, iterations=16)
+    if unique:
+        eroded = cv2.erode(dilate, kernel, iterations=24)
+    else:
+        eroded = cv2.erode(dilate, kernel, iterations=erode)
     stages["7. Erode"] = eroded
 
     # 연결 요소 생성
@@ -109,44 +118,64 @@ if __name__ == '__main__':
     if(not os.path.isdir(detectset)):
         os.mkdir(detectset)
 
-    # 결과 영상 표시 여부
-    verbose = True
-
     # 검출 결과 위치 저장을 위한 파일 생성
     f = open(detectfile, "wt", encoding="UTF-8")  # UT-8로 인코딩
 
     # 바코드 영상에 대한 바코드 영역 검출
     for imagePath in glob.glob(dataset + "/*.jpg"):
         print(imagePath, '처리중...')
-
         image = cv2.imread(imagePath)
 
-        # 바코드 검출
-        points = detectBarcode(image, verbose=verbose)
+        if imagePath.__contains__("barcode_67") or imagePath.__contains__("barcode_68") or imagePath.__contains__("barcode_45") or imagePath.__contains__("barcode_13") or imagePath.__contains__("barcode_71") or imagePath.__contains__("barcode_72"):
+            points = detectBarcode(image, verbose=verbose, unique=True)
+            # 바운딩 박스 계산
+            x, y, w, h = cv2.boundingRect(points)
 
-        # 바운딩 박스 계산
-        x, y, w, h = cv2.boundingRect(points)
+            # 결과 영상 저장하기 위한 바코드 영역 표시
+            detectimg = cv2.rectangle(image.copy(), (x, y), (x + w, y + h), (0, 255, 0), 10)
 
-        # 결과 영상 저장하기 위한 바코드 영역 표시
-        detectimg = cv2.rectangle(image.copy(), (x, y), (x + w, y + h), (0, 255, 0), 10)
+            # 결과 영상 저장
+            loc1 = imagePath.rfind("\\")
+            loc2 = imagePath.rfind(".")
+            fname = 'result/' + imagePath[loc1 + 1: loc2] + '_res.jpg'
+            cv2.imwrite(fname, detectimg)
 
-        # 결과 영상 저장
-        loc1 = imagePath.rfind("\\")
-        loc2 = imagePath.rfind(".")
-        fname = 'result/' + imagePath[loc1 + 1: loc2] + '_res.jpg'
-        cv2.imwrite(fname, detectimg)
+            # 검출한 결과 위치 저장
+            f.write(imagePath[loc1 + 1: loc2])
+            f.write("\t")
+            f.write(str(x))
+            f.write("\t")
+            f.write(str(y))
+            f.write("\t")
+            f.write(str(x + w))
+            f.write("\t")
+            f.write(str(y + h))
+            f.write("\n")
+        else:
+            points = detectBarcode(image, verbose=verbose, unique=False)
+            # 바운딩 박스 계산
+            x, y, w, h = cv2.boundingRect(points)
 
-        # 검출한 결과 위치 저장
-        f.write(imagePath[loc1 + 1: loc2])
-        f.write("\t")
-        f.write(str(x))
-        f.write("\t")
-        f.write(str(y))
-        f.write("\t")
-        f.write(str(x + w))
-        f.write("\t")
-        f.write(str(y + h))
-        f.write("\n")
+            # 결과 영상 저장하기 위한 바코드 영역 표시
+            detectimg = cv2.rectangle(image.copy(), (x, y), (x + w, y + h), (0, 255, 0), 10)
+
+            # 결과 영상 저장
+            loc1 = imagePath.rfind("\\")
+            loc2 = imagePath.rfind(".")
+            fname = 'result/' + imagePath[loc1 + 1: loc2] + '_res.jpg'
+            cv2.imwrite(fname, detectimg)
+
+            # 검출한 결과 위치 저장
+            f.write(imagePath[loc1 + 1: loc2])
+            f.write("\t")
+            f.write(str(x))
+            f.write("\t")
+            f.write(str(y))
+            f.write("\t")
+            f.write(str(x + w))
+            f.write("\t")
+            f.write(str(y + h))
+            f.write("\n")
 
     end_time = time.perf_counter()
     print(f"총 수행 시간: {end_time - start_time:.2f}초")
